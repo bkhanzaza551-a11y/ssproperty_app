@@ -93,6 +93,15 @@ const OTPScreen = ({ route, navigation }) => {
                 const userData = response.data?.data?.user || response.data?.data;
                 if (token && userData) {
                     await authStore.saveAuthData(token, userData);
+                    
+                    // Upload notification token now that we have user data
+                    try {
+                        const notificationService = require('../../services/notificationService').default;
+                        notificationService.uploadToken();
+                    } catch (err) {
+                        console.log('Token upload deferred:', err);
+                    }
+
                     // Navigate to Dashboard (Sell tab)
                     navigation.replace('MainApp', {
                         screen: 'Home'

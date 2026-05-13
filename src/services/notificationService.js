@@ -117,23 +117,42 @@ class NotificationService {
     }
 
     /**
+     * Upload current FCM token to backend
+     * Call this after login to ensure token is saved
+     */
+    async uploadToken() {
+        try {
+            const token = this.token || await messaging().getToken();
+            if (!token) {
+                console.log('[NotificationService] No token available to upload');
+                return;
+            }
+            
+            this.token = token;
+            await this.sendTokenToBackend(token);
+        } catch (error) {
+            console.error('[NotificationService] Upload token error:', error);
+        }
+    }
+
+    /**
      * Send FCM token to backend
      */
     async sendTokenToBackend(token) {
         try {
             const userDataStr = await AsyncStorage.getItem('userData');
             if (!userDataStr) {
-                console.log('[NotificationService] No user logged in, skipping token upload');
+                console.log('[NotificationService] No user logged in, skipping token upload to backend');
                 return;
             }
 
             // Import API function
             const { saveFCMToken } = require('../api/userApi');
 
-            await saveFCMToken(token);
-            console.log('[NotificationService] Token sent to backend successfully');
+            const response = await saveFCMToken(token);
+            console.log('[NotificationService] Token uploaded to backend:', response.data?.message || 'Success');
         } catch (error) {
-            console.error('[NotificationService] Send token error:', error);
+            console.error('[NotificationService] Send token error:', error.message);
         }
     }
 
