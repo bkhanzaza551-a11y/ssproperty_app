@@ -55,7 +55,7 @@ const LiveTourScreen = ({ navigation }) => {
                 
                 // Build clean embed URL with parameters to hide YouTube UI
                 if (videoId) {
-                    embedUrl = `https://www.youtube.com/embed/${videoId}?` +
+                    embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?` +
                         'autoplay=1&' +           // Auto-play video
                         'modestbranding=1&' +     // Minimal YouTube branding
                         'rel=0&' +                // Don't show related videos
@@ -107,7 +107,12 @@ const LiveTourScreen = ({ navigation }) => {
                 </View>
             ) : isActive && streamUrl ? (
                 <WebView
-                    source={{ uri: streamUrl }}
+                    source={{ 
+                        uri: streamUrl,
+                        headers: {
+                            'Referer': 'https://com.project.sspropertyguru'
+                        }
+                    }}
                     style={styles.webview}
                     allowsFullscreenVideo={true}
                     javaScriptEnabled={true}
