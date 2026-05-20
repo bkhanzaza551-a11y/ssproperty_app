@@ -51,6 +51,8 @@ const SignupScreen = ({ navigation }) => {
     }, []);
 
     const handleSignup = async () => {
+        if (loading) return;
+
         const trimmedName = (name || '').trim();
         const trimmedPhone = (phone || '').trim();
 
@@ -93,10 +95,18 @@ const SignupScreen = ({ navigation }) => {
                 if (devOtp) setTimeout(() => Alert.alert('Dev Mode OTP', `Your OTP: ${devOtp}`), 500);
             }
         } catch (error) {
-            console.error('Signup Error:', error.response?.data);
+            console.error('Signup Error detail:', error.response?.data || error.message || error);
             let message = t('auth.failedToCreateAccount');
-            if (error.response?.status === 409) message = t('auth.alreadyRegistered');
-            else if (error.response?.data?.message) message = error.response.data.message;
+            
+            const status = error.response?.status || error.response?.data?.statusCode;
+            const serverMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+
+            if (status === 409 || serverMessage?.toLowerCase().includes('already exists') || serverMessage?.toLowerCase().includes('registered')) {
+                message = t('auth.alreadyRegistered');
+            } else if (serverMessage) {
+                message = serverMessage;
+            }
+            
             Alert.alert(t('common.error'), message);
         } finally {
             setLoading(false);
