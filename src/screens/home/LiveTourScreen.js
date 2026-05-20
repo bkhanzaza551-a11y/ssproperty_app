@@ -108,8 +108,29 @@ const LiveTourScreen = ({ navigation }) => {
                 </View>
             ) : isActive && streamUrl ? (
                 <WebView
+                    originWhitelist={['*']}
                     source={{ 
-                        uri: streamUrl
+                        html: `
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                            <style>
+                              body { margin: 0; padding: 0; background-color: #000; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
+                              iframe { width: 100vw; height: 100vh; border: none; }
+                            </style>
+                          </head>
+                          <body>
+                            <iframe 
+                              src="${streamUrl}" 
+                              referrerpolicy="strict-origin-when-cross-origin" 
+                              allow="autoplay; fullscreen"
+                              allowfullscreen>
+                            </iframe>
+                          </body>
+                        </html>
+                        `,
+                        baseUrl: 'https://www.youtube.com'
                     }}
                     style={styles.webview}
                     allowsFullscreenVideo={true}
