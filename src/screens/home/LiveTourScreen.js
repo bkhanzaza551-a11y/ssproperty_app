@@ -55,17 +55,18 @@ const LiveTourScreen = ({ navigation }) => {
                 
                 // Build clean embed URL with parameters to hide YouTube UI
                 if (videoId) {
-                    embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?` +
-                        'autoplay=1&' +           // Auto-play video
-                        'modestbranding=1&' +     // Minimal YouTube branding
-                        'rel=0&' +                // Don't show related videos
-                        'showinfo=0&' +           // Hide video info
-                        'controls=1&' +           // Show player controls
-                        'fs=1&' +                 // Allow fullscreen
-                        'playsinline=1&' +        // Play inline on iOS
-                        'iv_load_policy=3&' +     // Hide video annotations
-                        'disablekb=1&' +          // Disable keyboard controls
-                        'cc_load_policy=0';       // Hide closed captions
+                    embedUrl = `https://www.youtube.com/embed/${videoId}?` +
+                        'autoplay=1&' +           
+                        'modestbranding=1&' +     
+                        'rel=0&' +                
+                        'showinfo=0&' +           
+                        'controls=1&' +           
+                        'fs=1&' +                 
+                        'playsinline=1&' +        
+                        'iv_load_policy=3&' +     
+                        'disablekb=1&' +          
+                        'cc_load_policy=0&' +
+                        'origin=https://sspropertyguru.com';
                 }
                 
                 setStreamUrl(embedUrl);
@@ -108,10 +109,7 @@ const LiveTourScreen = ({ navigation }) => {
             ) : isActive && streamUrl ? (
                 <WebView
                     source={{ 
-                        uri: streamUrl,
-                        headers: {
-                            'Referer': 'https://com.project.sspropertyguru'
-                        }
+                        uri: streamUrl
                     }}
                     style={styles.webview}
                     allowsFullscreenVideo={true}

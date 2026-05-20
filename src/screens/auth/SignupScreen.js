@@ -50,9 +50,11 @@ const SignupScreen = ({ navigation }) => {
         ]).start();
     }, []);
 
+    const isSubmitting = useRef(false);
+
     // Prevent double-submits and parse server errors robustly
     const handleSignup = async () => {
-        if (loading) return;
+        if (loading || isSubmitting.current) return;
 
         const trimmedName = (name || '').trim();
         const trimmedPhone = (phone || '').trim();
@@ -65,20 +67,44 @@ const SignupScreen = ({ navigation }) => {
             return Alert.alert(t('auth.invalidPhone'), t('auth.invalidPhoneDesc'));
         }
 
+        isSubmitting.current = true;
         setLoading(true);
         try {
             // Get current location (automatically)
             let locationData = { latitude: 0, longitude: 0 };
+            
             try {
-                const location = await GetLocation.getCurrentPosition({
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                });
-                locationData = {
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                };
-                console.log('Location Captured:', locationData);
+                let hasPermission = true;
+                
+                // Explicitly request permission on Android to avoid native crashes/hangs if denied
+                if (Platform.OS === 'android') {
+                    const { PermissionsAndroid } = require('react-native');
+                    const granted = await PermissionsAndroid.request(
+                        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                        {
+                            title: "Location Permission",
+                            message: "App needs access to your location.",
+                            buttonNeutral: "Ask Me Later",
+                            buttonNegative: "Cancel",
+                            buttonPositive: "OK"
+                        }
+                    );
+                    hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+                }
+                
+                if (hasPermission) {
+                    const location = await GetLocation.getCurrentPosition({
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                    });
+                    locationData = {
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                    };
+                    console.log('Location Captured:', locationData);
+                } else {
+                    console.log('Location permission denied, proceeding with default (0,0)');
+                }
             } catch (err) {
                 console.warn('Location Capture Failed:', err.code, err.message);
                 // Continue with signup even if location fails
@@ -90,6 +116,7 @@ const SignupScreen = ({ navigation }) => {
                 contact: trimmedPhone,
                 ...locationData
             });
+            
             if (response.data) {
                 const devOtp = response.data?.data?.devOtp;
                 navigation.navigate('OTP', { email: trimmedPhone, mode: 'verify', prefillOtp: devOtp || null });
@@ -103,14 +130,15 @@ const SignupScreen = ({ navigation }) => {
             const serverMessage = error.response?.data?.message || error.response?.data?.error || error.message;
 
             if (status === 409 || serverMessage?.toLowerCase().includes('already exists') || serverMessage?.toLowerCase().includes('registered')) {
-                message = t('auth.alreadyRegistered');
+                message = "This phone number is already registered. Please login instead or use a different number.";
             } else if (serverMessage) {
                 message = serverMessage;
             }
             
-            Alert.alert(t('common.error'), message);
+            Alert.alert('Signup Failed', message);
         } finally {
             setLoading(false);
+            isSubmitting.current = false;
         }
     };
 
