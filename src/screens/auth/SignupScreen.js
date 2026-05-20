@@ -50,6 +50,7 @@ const SignupScreen = ({ navigation }) => {
         ]).start();
     }, []);
 
+    // Prevent double-submits and parse server errors robustly
     const handleSignup = async () => {
         if (loading) return;
 
