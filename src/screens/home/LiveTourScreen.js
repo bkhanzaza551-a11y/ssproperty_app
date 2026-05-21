@@ -16,6 +16,86 @@ import Colors from '../../constants/colors';
 import { getCurrentStream } from '../../api/streamApi';
 
 const { width, height } = Dimensions.get('window');
+const YOUTUBE_REFERRER = 'https://com.project.sspropertyguru';
+
+const getYoutubeVideoId = (url) => {
+    if (!url) return null;
+
+    try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.replace(/^www\./, '');
+
+        if (host === 'youtu.be') {
+            return parsed.pathname.split('/').filter(Boolean)[0] || null;
+        }
+
+        if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'youtube-nocookie.com') {
+            if (parsed.pathname === '/watch') return parsed.searchParams.get('v');
+            if (parsed.pathname.startsWith('/live/') || parsed.pathname.startsWith('/embed/') || parsed.pathname.startsWith('/shorts/')) {
+                return parsed.pathname.split('/').filter(Boolean)[1] || null;
+            }
+        }
+    } catch (error) {
+        const match = url.match(/(?:v=|youtu\.be\/|\/live\/|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{6,})/);
+        return match?.[1] || null;
+    }
+
+    return null;
+};
+
+const buildYoutubeEmbedUrl = (videoId) => {
+    const params = new URLSearchParams({
+        autoplay: '1',
+        modestbranding: '1',
+        rel: '0',
+        controls: '1',
+        fs: '1',
+        playsinline: '1',
+        iv_load_policy: '3',
+        cc_load_policy: '0',
+        enablejsapi: '1',
+        origin: YOUTUBE_REFERRER,
+        widget_referrer: YOUTUBE_REFERRER,
+    });
+
+    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+};
+
+const buildYoutubeHtml = (embedUrl) => `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+      }
+      iframe {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe
+      src="${embedUrl}"
+      title="SS Property Guru Live Tour"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+      referrerpolicy="strict-origin-when-cross-origin"
+      allowfullscreen>
+    </iframe>
+  </body>
+</html>`;
 
 const LiveTourScreen = ({ navigation }) => {
     const { t } = useTranslation();
@@ -35,37 +115,11 @@ const LiveTourScreen = ({ navigation }) => {
             const isStreamActive = streamData?.isActive === true || streamData?.active === true;
             
             if (streamData?.youtubeUrl && isStreamActive) {
-                // Convert YouTube URL to embed format with clean player
+                const videoId = getYoutubeVideoId(streamData.youtubeUrl);
                 let embedUrl = streamData.youtubeUrl;
-                let videoId = null;
-                
-                // Extract video ID from different YouTube URL formats
-                if (embedUrl.includes('youtube.com/watch?v=')) {
-                    videoId = embedUrl.split('v=')[1]?.split('&')[0];
-                } else if (embedUrl.includes('youtu.be/')) {
-                    videoId = embedUrl.split('youtu.be/')[1]?.split('?')[0];
-                } else if (embedUrl.includes('youtube.com/live/')) {
-                    videoId = embedUrl.split('/live/')[1]?.split('?')[0];
-                } else if (embedUrl.includes('/embed/')) {
-                    videoId = embedUrl.split('/embed/')[1]?.split('?')[0];
-                } else {
-                    const videoIdMatch = embedUrl.match(/[?&]v=([^&]+)/);
-                    if (videoIdMatch) videoId = videoIdMatch[1];
-                }
-                
-                // Build clean embed URL with parameters to hide YouTube UI
+
                 if (videoId) {
-                    embedUrl = `https://www.youtube.com/embed/${videoId}?` +
-                        'autoplay=1&' +           
-                        'modestbranding=1&' +     
-                        'rel=0&' +                
-                        'showinfo=0&' +           
-                        'controls=1&' +           
-                        'fs=1&' +                 
-                        'playsinline=1&' +        
-                        'iv_load_policy=3&' +     
-                        'disablekb=1&' +          
-                        'cc_load_policy=0';
+                    embedUrl = buildYoutubeEmbedUrl(videoId);
                 }
                 
                 setStreamUrl(embedUrl);
@@ -108,11 +162,14 @@ const LiveTourScreen = ({ navigation }) => {
             ) : isActive && streamUrl ? (
                 <WebView
                     originWhitelist={['*']}
-                    source={{ uri: streamUrl }}
+                    source={{ html: buildYoutubeHtml(streamUrl), baseUrl: YOUTUBE_REFERRER }}
                     style={styles.webview}
                     allowsFullscreenVideo={true}
                     javaScriptEnabled={true}
                     domStorageEnabled={true}
+                    thirdPartyCookiesEnabled={true}
+                    sharedCookiesEnabled={true}
+                    mixedContentMode="always"
                     mediaPlaybackRequiresUserAction={false}
                     allowsInlineMediaPlayback={true}
                     scalesPageToFit={true}

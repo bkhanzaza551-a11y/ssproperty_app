@@ -55,6 +55,8 @@ const HomeScreen = ({ navigation }) => {
     const [enquiryLoading, setEnquiryLoading] = useState(false);
     const [showLivePopup, setShowLivePopup] = useState(false);
     const [liveUrl, setLiveUrl] = useState('');
+    const [isLiveActive, setIsLiveActive] = useState(false);
+    const liveUrlRef = useRef('');
 
     // Premium Staggered Animations
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -96,6 +98,33 @@ const HomeScreen = ({ navigation }) => {
                 Animated.timing(contentFade, { toValue: 1, duration: 600, useNativeDriver: true })
             ]).start();
         }
+    }, [actionsFade, contentFade]);
+
+    const checkLiveStream = useCallback(async () => {
+        try {
+            const res = await getCurrentStream();
+            const streamData = res.data?.data || res.data?.stream || res.data;
+            const isStreamActive = streamData?.isActive === true || streamData?.active === true;
+            const youtubeUrl = streamData?.youtubeUrl;
+
+            if (youtubeUrl && isStreamActive) {
+                setLiveUrl(youtubeUrl);
+                setIsLiveActive(true);
+
+                if (liveUrlRef.current !== youtubeUrl) {
+                    liveUrlRef.current = youtubeUrl;
+                    setShowLivePopup(true);
+                }
+                return;
+            }
+
+            liveUrlRef.current = '';
+            setLiveUrl('');
+            setIsLiveActive(false);
+            setShowLivePopup(false);
+        } catch (error) {
+            // Silently fail - don't block UI
+        }
     }, []);
 
     useEffect(() => {
@@ -110,22 +139,15 @@ const HomeScreen = ({ navigation }) => {
         setTimeout(() => {
             checkLiveStream();
         }, 2000);
-    }, [fadeAnim, slideAnim, fetchHomeData]);
+    }, [fadeAnim, slideAnim, fetchHomeData, checkLiveStream]);
 
-    const checkLiveStream = async () => {
-        try {
-            const res = await getCurrentStream();
-            const streamData = res.data?.data || res.data?.stream || res.data;
-            const isStreamActive = streamData?.isActive === true || streamData?.active === true;
-            
-            if (streamData?.youtubeUrl && isStreamActive) {
-                setLiveUrl(streamData.youtubeUrl);
-                setShowLivePopup(true);
-            }
-        } catch (error) {
-            // Silently fail - don't block UI
-        }
-    };
+    useFocusEffect(
+        useCallback(() => {
+            checkLiveStream();
+            const interval = setInterval(checkLiveStream, 30000);
+            return () => clearInterval(interval);
+        }, [checkLiveStream])
+    );
 
     const handleWatchLive = () => {
         setShowLivePopup(false);
@@ -192,7 +214,7 @@ const HomeScreen = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={() => fetchHomeData(true)} tintColor={Colors.primary} />
+                    <RefreshControl refreshing={refreshing} onRefresh={() => { fetchHomeData(true); checkLiveStream(); }} tintColor={Colors.primary} />
                 }
                 style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
@@ -254,7 +276,7 @@ const HomeScreen = ({ navigation }) => {
                     <ActionCard title={t('home.sell')} desc={t('home.sellDesc')} icon="cash" color={Colors.accentSoft} onPress={() => navigation.navigate('Sell')} />
                     <ActionCard title={t('home.enquiry')} desc={t('home.enquiryDescShort')} icon="chatbubble-ellipses" color="#F1F5F9" onPress={() => navigation.navigate('Enquiry')} />
                     <ActionCard title={t('home.franchise')} desc={t('home.franchiseDesc')} icon="business" color="#ECFDF5" onPress={() => navigation.navigate('Franchise')} />
-                    <ActionCard title="Live Program" desc="Watch property tours live" icon="videocam" color="#FEF3C7" onPress={() => navigation.navigate('LiveTour')} />
+                    <ActionCard title={isLiveActive ? 'Live Now' : 'Live Program'} desc={isLiveActive ? 'Tap to watch the live tour' : 'Watch property tours live'} icon="videocam" color="#FEF3C7" onPress={() => navigation.navigate('LiveTour')} />
                     <ActionCard title="Gallery" desc="View property photos" icon="images" color="#EDE9FE" onPress={() => navigation.navigate('Gallery')} />
                 </Animated.View>
 
