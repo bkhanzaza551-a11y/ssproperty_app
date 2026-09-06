@@ -50,6 +50,13 @@ jobs:
         env:
           KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
         run: |
+          if [ -z "$KEYSTORE_FILE" ]; then
+            echo "❌ ERROR: KEYSTORE_FILE secret is empty or missing!"
+            echo "Please go to Settings > Secrets and variables > Actions"
+            echo "And add the KEYSTORE_FILE secret with the base64 content."
+            exit 1
+          fi
+          
           # Remove any whitespace/newlines and decode ignoring garbage
           echo "$KEYSTORE_FILE" | tr -d '\n\r\t ' | base64 -d -i > android/app/upload-key.jks
           
