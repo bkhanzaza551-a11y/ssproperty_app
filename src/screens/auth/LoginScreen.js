@@ -9,7 +9,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import Colors from '../../constants/colors';
 import FloatingLabelInput from '../../components/FloatingLabelInput';
 import AnimatedButton from '../../components/AnimatedButton';
-import { forgotPassword } from '../../api/authApi';
+import { signin } from '../../api/authApi';
+import authStore from '../../store/authStore';
 
 const { width } = Dimensions.get('window');
 
@@ -17,6 +18,7 @@ const LoginScreen = ({ navigation }) => {
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
     // Staggered Animations
@@ -44,22 +46,46 @@ const LoginScreen = ({ navigation }) => {
         ]).start();
     }, []);
 
-    const handleSendOTP = async () => {
-        if (!phone || phone.length < 10) {
+    const handleLogin = async () => {
+        const trimmedPhone = (phone || '').trim();
+        const trimmedPassword = (password || '').trim();
+
+        if (!trimmedPhone || trimmedPhone.length < 10) {
             Alert.alert(t('auth.invalidPhone'), t('auth.invalidPhoneDesc'));
+            return;
+        }
+        if (!trimmedPassword || trimmedPassword.length < 6) {
+            Alert.alert('Invalid Password', 'Password must be at least 6 characters.');
             return;
         }
 
         setLoading(true);
         try {
-            const response = await forgotPassword(phone);
-            const devOtp = response.data?.data?.devOtp;
-            navigation.navigate('OTP', { email: phone, mode: 'verify', prefillOtp: devOtp || null });
-            if (devOtp) setTimeout(() => Alert.alert('Dev Mode OTP', `Your OTP: ${devOtp}`), 500);
+            const response = await signin(trimmedPhone, trimmedPassword);
+            const token = response.data?.data?.token || response.data?.token;
+            const userData = response.data?.data?.user || response.data?.data;
+
+            if (token && userData) {
+                await authStore.saveAuthData(token, userData);
+
+                // Upload FCM notification token
+                try {
+                    const notificationService = require('../../services/notificationService').default;
+                    notificationService.uploadToken();
+                } catch (err) {
+                    console.log('Token upload deferred:', err);
+                }
+
+                navigation.replace('MainApp', { screen: 'Home' });
+            } else {
+                Alert.alert(t('common.error'), 'Login failed. Please try again.');
+            }
         } catch (error) {
             console.error('[LOGIN] Error:', error.response?.data);
-            let message = t('auth.failedToSendOTP');
+            let message = 'Failed to login. Please check your credentials.';
             if (error.response?.status === 404) message = t('auth.phoneNotFound');
+            else if (error.response?.status === 401) message = 'Incorrect password. Please try again.';
+            else if (error.response?.status === 403) message = error.response?.data?.message || 'Your account is inactive. Contact admin.';
             else if (error.response?.data?.message) message = error.response.data.message;
             Alert.alert(t('common.error'), message);
         } finally {
@@ -79,7 +105,7 @@ const LoginScreen = ({ navigation }) => {
                     <LinearGradient colors={[Colors.accentSoft, Colors.background]} style={styles.decorCircleSmall} />
                 </View>
 
-                {/* Animated Header Component */}
+                {/* Animated Header */}
                 <View style={styles.header}>
                     <Animated.View style={[styles.logoContainer, { opacity: logoAnim, transform: [{ translateY: logoSlide }] }]}>
                         <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
@@ -90,7 +116,7 @@ const LoginScreen = ({ navigation }) => {
                     </Animated.View>
                 </View>
 
-                {/* Animated Form Layer */}
+                {/* Animated Form */}
                 <Animated.View style={[styles.card, { opacity: formAnim, transform: [{ translateY: formSlide }] }]}>
 
                     <FloatingLabelInput
@@ -101,12 +127,21 @@ const LoginScreen = ({ navigation }) => {
                         prefix="+91"
                         keyboardType="phone-pad"
                         maxLength={10}
+                        style={{ marginBottom: 20 }}
+                    />
+
+                    <FloatingLabelInput
+                        label="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        icon="lock-closed-outline"
+                        secureTextEntry
                         style={{ marginBottom: 24 }}
                     />
 
                     <AnimatedButton
-                        title={t('auth.sendOTP')}
-                        onPress={handleSendOTP}
+                        title={t('auth.signIn')}
+                        onPress={handleLogin}
                         loading={loading}
                         icon="log-in-outline"
                     />

@@ -17,31 +17,45 @@ const SignupScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
     // Staggered Animations
     const headerAnim = useRef(new Animated.Value(0)).current;
     const headerSlide = useRef(new Animated.Value(-30)).current;
-    const nameAnim = useRef(new Animated.Value(0)).current;
-    const nameSlide = useRef(new Animated.Value(20)).current;
-    const phoneAnim = useRef(new Animated.Value(0)).current;
-    const phoneSlide = useRef(new Animated.Value(20)).current;
+    const field1Anim = useRef(new Animated.Value(0)).current;
+    const field1Slide = useRef(new Animated.Value(20)).current;
+    const field2Anim = useRef(new Animated.Value(0)).current;
+    const field2Slide = useRef(new Animated.Value(20)).current;
+    const field3Anim = useRef(new Animated.Value(0)).current;
+    const field3Slide = useRef(new Animated.Value(20)).current;
+    const field4Anim = useRef(new Animated.Value(0)).current;
+    const field4Slide = useRef(new Animated.Value(20)).current;
     const btnAnim = useRef(new Animated.Value(0)).current;
     const btnSlide = useRef(new Animated.Value(20)).current;
 
     useEffect(() => {
-        Animated.stagger(100, [
+        Animated.stagger(80, [
             Animated.parallel([
                 Animated.timing(headerAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
                 Animated.spring(headerSlide, { toValue: 0, tension: 20, friction: 6, useNativeDriver: true })
             ]),
             Animated.parallel([
-                Animated.timing(nameAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-                Animated.spring(nameSlide, { toValue: 0, tension: 30, friction: 7, useNativeDriver: true })
+                Animated.timing(field1Anim, { toValue: 1, duration: 500, useNativeDriver: true }),
+                Animated.spring(field1Slide, { toValue: 0, tension: 30, friction: 7, useNativeDriver: true })
             ]),
             Animated.parallel([
-                Animated.timing(phoneAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-                Animated.spring(phoneSlide, { toValue: 0, tension: 30, friction: 7, useNativeDriver: true })
+                Animated.timing(field2Anim, { toValue: 1, duration: 500, useNativeDriver: true }),
+                Animated.spring(field2Slide, { toValue: 0, tension: 30, friction: 7, useNativeDriver: true })
+            ]),
+            Animated.parallel([
+                Animated.timing(field3Anim, { toValue: 1, duration: 500, useNativeDriver: true }),
+                Animated.spring(field3Slide, { toValue: 0, tension: 30, friction: 7, useNativeDriver: true })
+            ]),
+            Animated.parallel([
+                Animated.timing(field4Anim, { toValue: 1, duration: 500, useNativeDriver: true }),
+                Animated.spring(field4Slide, { toValue: 0, tension: 30, friction: 7, useNativeDriver: true })
             ]),
             Animated.parallel([
                 Animated.timing(btnAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
@@ -52,19 +66,26 @@ const SignupScreen = ({ navigation }) => {
 
     const isSubmitting = useRef(false);
 
-    // Prevent double-submits and parse server errors robustly
     const handleSignup = async () => {
         if (loading || isSubmitting.current) return;
 
         const trimmedName = (name || '').trim();
         const trimmedPhone = (phone || '').trim();
+        const trimmedPassword = (password || '').trim();
+        const trimmedConfirm = (confirmPassword || '').trim();
 
+        // Validations
         if (!trimmedName || !trimmedPhone) {
             return Alert.alert(t('auth.missingFields'), t('auth.missingFieldsDesc'));
         }
-
         if (trimmedPhone.length < 10) {
             return Alert.alert(t('auth.invalidPhone'), t('auth.invalidPhoneDesc'));
+        }
+        if (!trimmedPassword || trimmedPassword.length < 6) {
+            return Alert.alert('Invalid Password', 'Password must be at least 6 characters.');
+        }
+        if (trimmedPassword !== trimmedConfirm) {
+            return Alert.alert('Password Mismatch', 'Password and Confirm Password do not match.');
         }
 
         isSubmitting.current = true;
@@ -72,26 +93,25 @@ const SignupScreen = ({ navigation }) => {
         try {
             // Get current location (automatically)
             let locationData = { latitude: 0, longitude: 0 };
-            
+
             try {
                 let hasPermission = true;
-                
-                // Explicitly request permission on Android to avoid native crashes/hangs if denied
+
                 if (Platform.OS === 'android') {
                     const { PermissionsAndroid } = require('react-native');
                     const granted = await PermissionsAndroid.request(
                         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                         {
-                            title: "Location Permission",
-                            message: "App needs access to your location.",
-                            buttonNeutral: "Ask Me Later",
-                            buttonNegative: "Cancel",
-                            buttonPositive: "OK"
+                            title: 'Location Permission',
+                            message: 'App needs access to your location.',
+                            buttonNeutral: 'Ask Me Later',
+                            buttonNegative: 'Cancel',
+                            buttonPositive: 'OK',
                         }
                     );
                     hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
                 }
-                
+
                 if (hasPermission) {
                     const location = await GetLocation.getCurrentPosition({
                         enableHighAccuracy: true,
@@ -107,34 +127,35 @@ const SignupScreen = ({ navigation }) => {
                 }
             } catch (err) {
                 console.warn('Location Capture Failed:', err.code, err.message);
-                // Continue with signup even if location fails
             }
 
             const response = await signup({
                 name: trimmedName,
                 email: `${trimmedPhone}@sspropertyguru.com`,
                 contact: trimmedPhone,
-                ...locationData
+                password: trimmedPassword,
+                ...locationData,
             });
-            
+
             if (response.data) {
                 const devOtp = response.data?.data?.devOtp;
+                // Navigate to OTP screen for phone number verification
                 navigation.navigate('OTP', { email: trimmedPhone, mode: 'verify', prefillOtp: devOtp || null });
                 if (devOtp) setTimeout(() => Alert.alert('Dev Mode OTP', `Your OTP: ${devOtp}`), 500);
             }
         } catch (error) {
             console.error('Signup Error detail:', error.response?.data || error.message || error);
             let message = t('auth.failedToCreateAccount');
-            
+
             const status = error.response?.status || error.response?.data?.statusCode;
             const serverMessage = error.response?.data?.message || error.response?.data?.error || error.message;
 
             if (status === 409 || serverMessage?.toLowerCase().includes('already exists') || serverMessage?.toLowerCase().includes('registered')) {
-                message = "This phone number is already registered. Please login instead or use a different number.";
+                message = 'This phone number is already registered. Please login instead or use a different number.';
             } else if (serverMessage) {
                 message = serverMessage;
             }
-            
+
             Alert.alert('Signup Failed', message);
         } finally {
             setLoading(false);
@@ -158,7 +179,8 @@ const SignupScreen = ({ navigation }) => {
                 </Animated.View>
 
                 <View style={styles.card}>
-                    <Animated.View style={{ opacity: nameAnim, transform: [{ translateY: nameSlide }] }}>
+                    {/* Name */}
+                    <Animated.View style={{ opacity: field1Anim, transform: [{ translateY: field1Slide }] }}>
                         <FloatingLabelInput
                             label={t('auth.name')}
                             value={name}
@@ -168,7 +190,8 @@ const SignupScreen = ({ navigation }) => {
                         />
                     </Animated.View>
 
-                    <Animated.View style={{ opacity: phoneAnim, transform: [{ translateY: phoneSlide }] }}>
+                    {/* Phone */}
+                    <Animated.View style={{ opacity: field2Anim, transform: [{ translateY: field2Slide }] }}>
                         <FloatingLabelInput
                             label={t('auth.phone')}
                             value={phone}
@@ -177,10 +200,35 @@ const SignupScreen = ({ navigation }) => {
                             prefix="+91"
                             keyboardType="phone-pad"
                             maxLength={10}
+                            style={{ marginBottom: 20 }}
+                        />
+                    </Animated.View>
+
+                    {/* Password */}
+                    <Animated.View style={{ opacity: field3Anim, transform: [{ translateY: field3Slide }] }}>
+                        <FloatingLabelInput
+                            label="Password"
+                            value={password}
+                            onChangeText={setPassword}
+                            icon="lock-closed-outline"
+                            secureTextEntry
+                            style={{ marginBottom: 20 }}
+                        />
+                    </Animated.View>
+
+                    {/* Confirm Password */}
+                    <Animated.View style={{ opacity: field4Anim, transform: [{ translateY: field4Slide }] }}>
+                        <FloatingLabelInput
+                            label="Confirm Password"
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            icon="lock-closed-outline"
+                            secureTextEntry
                             style={{ marginBottom: 28 }}
                         />
                     </Animated.View>
 
+                    {/* Submit Button */}
                     <Animated.View style={{ opacity: btnAnim, transform: [{ translateY: btnSlide }] }}>
                         <AnimatedButton
                             title={t('auth.createAccount')}
