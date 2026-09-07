@@ -81,9 +81,11 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Build Release APK & AAB
-        working-directory: android
         run: |
+          cd android
           chmod +x gradlew
+          echo "Clearing Gradle cache as requested..."
+          ./gradlew clean
           echo "🚀 Starting Release Build..."
           ./gradlew assembleRelease bundleRelease \
             --no-daemon \
