@@ -10,6 +10,7 @@ import Colors from '../../constants/colors';
 import FloatingLabelInput from '../../components/FloatingLabelInput';
 import AnimatedButton from '../../components/AnimatedButton';
 import { signup } from '../../api/authApi';
+import { authStore } from '../../store/authStore';
 import GetLocation from 'react-native-get-location';
 
 const SignupScreen = ({ navigation }) => {
