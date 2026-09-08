@@ -6,7 +6,7 @@ const options = {
     }
 };
 
-https.get('https://api.github.com/repos/bilalk990/ssguru-property-app/actions/runs?per_page=1', options, (res) => {
+https.get('https://api.github.com/repos/bkhanzaza551-a11y/ssproperty_app/actions/runs?per_page=1', options, (res) => {
     let data = '';
     res.on('data', chunk => data += chunk);
     res.on('end', () => {

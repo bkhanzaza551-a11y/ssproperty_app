@@ -10,7 +10,7 @@ import Colors from '../../constants/colors';
 import FloatingLabelInput from '../../components/FloatingLabelInput';
 import AnimatedButton from '../../components/AnimatedButton';
 import { signup } from '../../api/authApi';
-import { authStore } from '../../store/authStore';
+import authStore from '../../store/authStore';
 import GetLocation from 'react-native-get-location';
 
 const SignupScreen = ({ navigation }) => {
@@ -82,8 +82,8 @@ const SignupScreen = ({ navigation }) => {
         if (trimmedPhone.length < 10) {
             return Alert.alert(t('auth.invalidPhone'), t('auth.invalidPhoneDesc'));
         }
-        if (!trimmedPassword || trimmedPassword.length < 6) {
-            return Alert.alert('Invalid Password', 'Password must be at least 6 characters.');
+        if (!trimmedPassword) {
+            return Alert.alert('Invalid Password', 'Password is required.');
         }
         if (trimmedPassword !== trimmedConfirm) {
             return Alert.alert('Password Mismatch', 'Password and Confirm Password do not match.');

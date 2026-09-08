@@ -50,7 +50,4 @@ export const getMyProperties = async (userId) => {
     return apiClient.get(`/properties/agent/${userId}`);
 };
 
-// Enquiry / Lead Submission (Postman: /api/v1/enquiries)
-export const submitEnquiry = async (enquiryData) => {
-    return apiClient.post('/enquiries', enquiryData);
-};
+

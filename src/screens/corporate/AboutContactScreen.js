@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linkin
 import { useTranslation } from 'react-i18next';
 import Colors from '../../constants/colors';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { submitEnquiry } from '../../api/propertyApi';
+import { createEnquiry } from '../../api/enquiryApi';
 import CustomButton from '../../components/CustomButton';
 
 const AboutContactScreen = ({ navigation }) => {
@@ -21,7 +21,7 @@ const AboutContactScreen = ({ navigation }) => {
         }
         setLoading(true);
         try {
-            await submitEnquiry({
+            await createEnquiry({
                 name: form.name,
                 contact: form.phone,
                 email: `${form.phone}@noemail.com`,

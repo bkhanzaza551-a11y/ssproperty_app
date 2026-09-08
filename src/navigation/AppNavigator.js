@@ -136,7 +136,7 @@ const SellStack = () => (
 
 const EnquiryStack = () => (
     <EnquiryStackNav.Navigator screenOptions={{ headerShown: false }}>
-        <EnquiryStackNav.Screen name="EnquiryMain" component={PostRequirementScreen} />
+        <EnquiryStackNav.Screen name="EnquiryMain" component={EnquiryFormScreen} />
         <EnquiryStackNav.Screen name="PropertyDetail" component={PropertyDetailScreen} />
     </EnquiryStackNav.Navigator>
 );
