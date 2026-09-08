@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Picker } from '@react-native-picker/picker';
 import {
     View,
     Text,
@@ -11,15 +12,21 @@ import {
     Platform,
     Image,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '../../constants/colors';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Picker } from '@react-native-picker/picker';
 import { useTranslation } from 'react-i18next';
 // Payment removed — free property listing
+import { Picker } from '@react-native-picker/picker';
 import { launchImageLibrary } from 'react-native-image-picker';
 import CustomButton from '../../components/CustomButton';
+import { Picker } from '@react-native-picker/picker';
 import { addProperty, updateProperty } from '../../api/propertyApi';
+import { Picker } from '@react-native-picker/picker';
 import { getDistricts, getAreas } from '../../api/districtApi';
+import { Picker } from '@react-native-picker/picker';
 import { propertyTypes } from '../../constants/appConstants';
 import authStore from '../../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,10 +41,10 @@ const AddPropertyScreen = ({ navigation, route }) => {
     const [form, setForm] = useState({
         title: propertyData?.title || '',
         price: propertyData?.price?.toString() || '',
-        city: propertyData?.city || 'Ujjain',
+        city: propertyData?.city || '',
         area: propertyData?.area || '',
         description: propertyData?.description || '',
-        category: propertyData?.category || 'House',
+        category: propertyData?.category || 'Residential',
         sellingType: propertyData?.sellingType || 'Sale',
         bedrooms: propertyData?.bedrooms?.toString() || '',
         bathrooms: propertyData?.bathrooms?.toString() || '',
@@ -466,17 +473,33 @@ const AddPropertyScreen = ({ navigation, route }) => {
                         <Text style={styles.stepTitle}>{t('property.locationFinish')}</Text>
                         <Text style={styles.stepDesc}>{t('property.locationFinishDesc')}</Text>
 
-                        <Text style={styles.sectionLabel}>{t('property.cityDistrict')}</Text>
-                        <TextInput style={styles.input} value={form.city} onChangeText={v => updateField('city', v)} />
+                        <Text style={styles.sectionLabel}>{t('property.cityDistrict')} *</Text>
+                        <View style={styles.pickerContainer}>
+                            <Picker
+                                selectedValue={form.city}
+                                onValueChange={(itemValue) => updateField('city', itemValue)}
+                                style={styles.picker}
+                            >
+                                <Picker.Item label="Select City" value="" color={Colors.textSecondary} />
+                                {districts.map((district, index) => (
+                                    <Picker.Item 
+                                        key={index} 
+                                        label={district.name || district.city || district.district || district} 
+                                        value={district.name || district.city || district.district || district} 
+                                    />
+                                ))}
+                            </Picker>
+                        </View>
 
-                        <Text style={styles.sectionLabel}>{t('property.area')}</Text>
+                        <Text style={styles.sectionLabel}>{t('property.area')} *</Text>
                         <TextInput style={styles.input} placeholder={t('property.areaPlaceholder')} value={form.area} onChangeText={v => updateField('area', v)} />
 
-                        <Text style={styles.sectionLabel}>{t('common.description')} *</Text>
+                        <Text style={styles.sectionLabel}>{t('property.descLabel')} *</Text>
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             placeholder={t('property.descPlaceholder')}
                             multiline
+                            numberOfLines={4}
                             value={form.description}
                             onChangeText={v => updateField('description', v)}
                         />
@@ -537,15 +560,29 @@ const styles = StyleSheet.create({
     stepDesc: { fontSize: 14, color: Colors.textSecondary, marginBottom: 25 },
     sectionLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary, marginBottom: 12, marginTop: 10 },
     input: {
-        backgroundColor: Colors.backgroundSecondary,
-        borderRadius: 14,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        fontSize: 15,
-        color: Colors.textPrimary,
+        backgroundColor: Colors.white,
         borderWidth: 1,
         borderColor: Colors.border,
-        marginBottom: 16,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 16,
+        color: Colors.textPrimary,
+        fontFamily: 'Inter-Regular',
+        marginBottom: 20,
+    },
+    pickerContainer: {
+        backgroundColor: Colors.white,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        borderRadius: 12,
+        marginBottom: 20,
+        overflow: 'hidden',
+    },
+    picker: {
+        height: 50,
+        width: '100%',
+        color: Colors.textPrimary,
     },
     textArea: { height: 120, paddingTop: 14 },
     typeContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
